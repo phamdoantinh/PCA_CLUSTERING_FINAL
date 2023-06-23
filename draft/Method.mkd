@@ -1,0 +1,70 @@
+# Put your method here
+
+Matplotlib IEEE format: [Link](https://github.com/garrettj403/SciencePlots)
+
+
+## System Architecture
+
+### Train phase
+
+First, clustering algorithm was used on the dataset labels to divide the dataset into sub-dataset. The output of clustering algorithm would be the cluster labels of the dataset. The labels were then mapped to the observations after performing Kernel principal component analysis to reduce the number of dimension. The new dataset is fed into the classifier to train to classify the correct cluster based on the reduced features. Next, for each sub-dataset correspond to the cluster label, a regression model is train on that sub-dataset. This is illustrated in the bottom right of the figure ..., where the reduced observations are divided based on their cluster label and a corresponding regressor is trained for each subgroup.
+
+### Test phase
+
+First, the observations in the test set are also transformed using the Kernel Principal Analysis to match with the number of dimension of the training set. Next, they are fed into the trained classifier and supervisor from the train phase to get the cluster prediction and the coordinate prediction. The coordinate prediction will then be used to determine which cluster it belong to. The cluster prediction from the classifier and the cluster prediction from the clustering algorithm are checked whether they are the same. If they are the same, then the coordinate prediction from the corresponding regressor is used. If not, then the final coordinate prediction is taken as the average value of 2 prediction.
+
+#### Preprocessing
+
+- **Normalize data** To help the model’s optimization be stable and converge fast,  we pre-process data with a usual standardization technique that transforms data to have mean of 0 and standard deviation of 1. The standardized process for input RSSI features ($X_{train}$) is described in equation:
+$$\boldsymbol{Standardization}: z = \frac{x - \mu}{\sigma}  \text{ , where } \mu = \frac { 1 } { N } \sum_ { i = 1 } ^ { N } \left ( x _{ i } \right ) \text{ and } \sigma = \sqrt { \frac { 1 } { N } \sum_ { i = 1 } ^ { N } \left ( x _ { i } - \mu  \right ) ^ { 2 } }$$
+$\qquad$
+
+
+Then, we perform kernel PCA using cosine kernel on the standardized RSSI data in order to reduce high dimension and filter out noise in data for faster convergeance.
+
+The overall architecture of the system is described in Fig. 1. During the training process, regressors, base model and classifer are saved and served for test process. A base DNN model is trained with this processed dataset {$X_{pca}, (C_x, C_y)$}. Then, we use KNN as clustering model to cluster Coordinate data $(C_x,C_y)$ into n cluster and map each coordinate into corresponding cluster which form a new classification set of label. New labels are combined with RSSI feature to train a classifier for mapping task, this task aims to assign each datapoints to a appropriate sub-regressor in test process.
+Encoded data {$X_{pca}, (C_x, C_y)$}   is then split into n sub-dataset  {$X^i_{pca}, (C^i_x, C^i_y)$} where $i=1,...n$ from n cluster previously for divide-and-conquer policy. We defined $n$ DNN models and  train with data from corresponding sub-dataset. Our training process is  illustrated in detail in Algorithm 1:
+
+---
+**Algorithm 1** &nbsp;&nbsp;&nbsp;$\text{Training process with Divide and Conquer policy}$
+
+---
+**Input**: Preprocessed data  {$X_{pca}, (C_x, C_y)$}
+**Output**: $n$ sub-regressor $\{S_i$  for &nbsp;$i=1,...n\}$; base regressor $T$; classifier $C$ and cluster model $K$.  
+&nbsp;&nbsp;&nbsp; **procedure**  $\text{Training}$  
+$\qquad \quad$**Step 1:** Train base regression model with the whole dataset  {$X_{pca}, (C_x, C_y)$} and save best checkpoint $T$  
+$\qquad \quad$**Step 2:** Cluster coordinate data $\{C_x, C_y \}$ into $n$ cluster using Kmeans Clustering algorithm and save cluster model $K$
+$\qquad \quad$ **Step 3:** Use cluster model $K$ to assign coordinate data into approriate cluster in order to generate new classification set of labels $Y$  
+$\qquad \quad$ **Step 4:** Train classification model with new dataset $\{X_{pca}, Y\}$ and save best checkpoint $C$
+$\qquad \quad$ **Step 5:** Split original coordinate data  $\{C_x, C_y \}$ into $n$ sub-dataset corresponding to $n$ cluster previously  
+$\qquad \quad$ **Step 6:** Train $n$ sub-regressor $\{S_i$  for &nbsp;$i=1,...n\}$ with cluster regression data and save best checkpoint $\{S_i$  for &nbsp;$i=1,...n\}$  
+&nbsp;&nbsp;&nbsp; **end procedure**
+
+In test process, suppose we have one datapoint RSSI feature $X^t$. This datapoint is first normalized and encoded to $X_{pca}^t$. Then, forward datapoint to classifier $C$ for mapping data to cluster label $Y_t$ and base regressor $T$ to produce supervision coordinate $(C_{xsup}^t, C_{ysup}^t)$. With cluster label $Y_t$, we can assign this datapoint to sub-regressor $S_t$ and use this model to predict location $(C_{x}^t, C_{y}^t)$ of datapoint. After that, use Kmeans model to predict both $(C_{xsup}^t, C_{ysup}^t)$ and $(C_{x}^t, C_{y}^t)$, if both label is in the same cluster $t$, we will use exactly location from model $S_t$ for final result; else our final result is average of supervision cooordinate and submodel $S_t$ coordinate
+
+---
+**Algorithm 2** &nbsp;&nbsp;&nbsp;$\text{Testing process with Divide and Conquer policy}$
+
+---
+**Input**: Preprocessed data  {$X_{pca}^t$}
+**Output**: location $(\hat{C_{x}}, \hat{C_{y}})$  
+&nbsp;&nbsp;&nbsp; **procedure**  $\text{Testing}$  
+$\qquad \quad$ **Step 1:** Forward $X_{pca}^t$ to classifier C to get cluster label $Y_t$ and to base regressor $T$ to get supervision coordinate $(C_{xsup}^t, C_{ysup}^t)$  
+$\qquad \quad$ **Step 2:** Assign $X_{pca}^t$ to sub-regressor $S_Y$ and get predicted location $(C_{x}^t, C_{y}^t)$  
+$\qquad \quad$ **Step 3:** Use Kmeans model $K$ to predict cluster $t_1$ $\leftrightarrow$ $(C_{xsup}^t, C_{ysup}^t)$ and cluster $t_2 \leftrightarrow$ $(C_{x}^t, C_{y}^t)$  
+$\qquad \quad$ **Step 4:** **If** $t_1 == t_2$:  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+$(\hat{C_{x}}, \hat{C_{y}})$   = $(C_{x}^t, C_{y}^t)$
+ $\qquad \qquad \qquad$ **Else**:  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+$(\hat{C_{x}}, \hat{C_{y}})$   = $(\frac{C_{x}^t + C_{xsup}^t}{2}, \frac{C_{y}^t + C_{ysup}^t}{2})$
+  
+&nbsp;&nbsp;&nbsp; **end procedure**
+
+# 2. Loss function
+
+The loss function that we use is based upon euclidean distance, which is defined by:
+
+ $$L = \frac { 1 } { N } \sum _ { n = 1 } ^ { N } | | \hat { y } _ { n } - y _ { n } | | _ { 2 } ^ { 2 }$$
+
+Where n is the number of verification samples, $\hat{y}_n$ is the corresponding output of model, $y_n$ denotes the ground-truth position. We adopt this cost function to calculate the degree of inconsistency between the localization results and the ground-truth. The smaller the value of the cost function is, the more accurate the corresponding localization result is.

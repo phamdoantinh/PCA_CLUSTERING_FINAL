@@ -1,0 +1,36 @@
+# Put your Introduction here
+
+## Introduction
+
+### Intro about the problem, possible solutions
+
+Recent years experienced a growing demand for many indoor location-based services and applications. While the Global Positioning System (GPS) is a popular localization technique, it is not suitable for indoor environments because of lacking in Line of Sight (LoS). To tackle the problem of indoor positioning, many solutions have been proposed, which utilize different technologies and infrastructure such as: bluetooth, Wifi, Zigbee and Inertial Measurement Unit (IMU).
+
+### Intro to fingerprinting
+
+Wifi Fingerprinting is a method that received much attention due to its advantages. Because most indoor infrastructures such as stations, airports have wifi access points installed and most of the commercial smartphones are equipped with Wifi transceiver module, method that utilizes Wifi signal can easily be deployed without the need for establishment of additional infrastructure.
+
+### Core challenges
+
+Wifi Fingerprinting can be divided into two phases: offline phase and online phase. In the offline phase, the method first assumed that the Received Signal Strength Indicator (RSSI) measurements from access points (AP)s for every position is unique. Then, there will be many designated fingerprint points in the environment for collecting RSSI measurements. After fingerprint points are collected, they are stored in the database called radio map. In the online phase, when a new RSSI measurement is recorded, it will be matched to the similar one in the radio map. One of the popular matching algorithms is the Nearest Neighbors in Signal Space (NNSS), which computes the distance of signal space between the observed fingerprint point and the recored fingerprint points. In this step, machine learning methods are also widely used to learn the radio map pattern and produce better location prediction.
+
+### Previous works
+
+Clustering algorithms are introduced to enhance the efficiency of positioning algorithms.
+Clustering references:
+
+- Fuzzy c-means (FCM) 11 “KNN-FCM hybrid algorithm for indoor location in WLAN”
+- k-means clustering 12 “Method of WiFi indoor location based on K—Means and random forest”
+- spectral clustering 13 “‘Indoor positioning using Wi-Fi fingerprint with signal clustering”
+  Others:
+- 14 “Indoor Wi-Fi RSS-fingerprint location algorithm based on sample points clustering and AP reduction”,
+- 15 “Hybrid FCM-WOA data clustering algorithm”;
+- 16 “Clustering-based location in wireless networks”
+
+### Brief contribution
+
+To address the aforementioned challenges, this paper proposes a novel scheme to cluster Wifi-RSSI dataset. First, a machine learning model we denoted as general model trained on the whole dataset and a conventional clustering algorithm is used on the coordinate label of the dataset to generate new cluster label. After clustering, fingerprint points are divided into several classes. Then, a classification algorithm is utilized to classify fingerprint points and for each class a sub model is built to predict the coordinate of fingerprint points. To optimize the accuracy of the predictions, if results from general model and submodel are different, both results of general model and sub models will be use to derive the final prediction.
+
+### Paper layout
+
+The rest of the paper is organized as follows. Section 2 presents the architecture and detail implementation of the proposed method. Section 3 presents the experiments. Section 4 presents the results followed by discussion. The last section concludes the paper with future direction.

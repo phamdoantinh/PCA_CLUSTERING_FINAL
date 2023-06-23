@@ -1,0 +1,10 @@
+pandas
+numpy
+scikit-learn
+matplotlib
+hydra-core
+ipykernel
+xgboost
+yellowbrick==1.5
+
+

@@ -1,0 +1,1 @@
+y_cluster_2 => Cluster theo dữ liệu y với k=2

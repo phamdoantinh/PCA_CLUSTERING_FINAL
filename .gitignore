@@ -1,0 +1,15 @@
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Environments
+.env
+.venv
+/.idea/*
+
+outputs/
+/data/tampere_data/pca/*
+/data/uts_data/pca/*
+/data/uji_data/pca/*
+/models/tampere_models/*
+/models/uji_models/*
+/models/uts_models/*
