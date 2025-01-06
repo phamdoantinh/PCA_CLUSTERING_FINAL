@@ -77,6 +77,7 @@ pip install -r requirements.txt
 
 :boom: [Nguyen Van Nam](https://github.com/ngnambka00-github) :boom:
 
+:boom: [Pham Doan Tung](https://github.com/tungphambasement) :boom:
 
 ```
           _/﹋\_
